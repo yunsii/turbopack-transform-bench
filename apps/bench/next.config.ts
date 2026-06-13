@@ -24,6 +24,7 @@ const AUTOIMPORT = on(process.env.BENCH_AUTOIMPORT, true)
 const SVGR = on(process.env.BENCH_SVGR, true)
 const LINGUI = on(process.env.BENCH_LINGUI, true)
 const MINIFY = on(process.env.BENCH_MINIFY, true)
+const FSCACHE = on(process.env.BENCH_FSCACHE, false)
 
 const rules: Record<string, unknown> = {}
 
@@ -107,6 +108,9 @@ const nextConfig: NextConfig = {
   experimental: {
     turbopackMinify: MINIFY,
     swcPlugins: LINGUI ? [['@lingui/swc-plugin', {}]] : [],
+    // Persist Turbopack's incremental build cache to .next/cache so a warm build
+    // reuses unchanged modules. BENCH_FSCACHE=1 to enable.
+    ...(FSCACHE ? { turbopackFileSystemCacheForBuild: true } : {}),
   },
   typescript: {
     ignoreBuildErrors: true,

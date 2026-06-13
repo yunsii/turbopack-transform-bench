@@ -56,6 +56,7 @@ BENCH_SCALES=600 BENCH_ROUNDS=3 BENCH_TRACE=1 pnpm bench
 - `BENCH_MINIFY` — `1` mirrors production (default)
 - `BENCH_TRACE` — `1` to also emit `NEXT_TURBOPACK_TRACING` builds per variant
 - `BENCH_AUTOIMPORT` / `BENCH_SVGR` / `BENCH_LINGUI` — flip an individual transform (read by both gen and build)
+- `BENCH_FSCACHE` — `1` enables `experimental.turbopackFileSystemCacheForBuild` (persistent build cache)
 
 ## Methodology
 
@@ -93,6 +94,24 @@ Median compile (s) of 3 rounds, WSL2 / Node 22.22.2 / Next 16.2.6 / minify on /
   The transferable number is the absolute **ms/file**, not the %.
 - `@lingui/swc-plugin` is read from the trace, not this table — see below. Full write-up in
   [`FINDINGS.md`](./FINDINGS.md).
+
+### Persistent build cache (`BENCH_FSCACHE=1`)
+
+`experimental.turbopackFileSystemCacheForBuild` persists Turbopack's incremental cache to
+`.next/cache`. Measured at 1200 files:
+
+| scenario | compile | vs cold |
+|---|---|---|
+| flag OFF, cold | 16.3s | — |
+| flag OFF, 2nd build (no `rm .next`) | 16.5s | no benefit (no cross-build cache by default) |
+| flag ON, cold | 18.9s | +16% (cache-write tax) |
+| flag ON, warm, no change | **0.40s** | ~47× |
+| flag ON, warm, 1 file changed | **3.8s** | ~5× |
+
+Warm compile scales with **changed modules + dependents**, not total module count — the one
+lever that beats "you still compile the same N files". Caveats (cold +16% tax, cache must
+survive across CI runs, cross-build determinism, GB-scale cache transfer) in
+[`FINDINGS.md`](./FINDINGS.md).
 
 ## Reading a trace (for lingui / loader spans)
 

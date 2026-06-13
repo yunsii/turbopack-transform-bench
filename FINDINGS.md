@@ -47,6 +47,31 @@ npx next internal trace .bench-logs/trace-base-600   # lingui span, no loader no
 # https://trace.nextjs.org/ → Spans in order → Bottom-up / self-duration
 ```
 
+## Persistent build cache (`experimental.turbopackFileSystemCacheForBuild`)
+
+`BENCH_FSCACHE=1`. Persists Turbopack's incremental cache to `.next/cache` so a later
+build reuses unchanged modules. Recognized in Next 16.2.6. Measured at 1200 files, all-on:
+
+| scenario | compile | vs cold |
+|---|---|---|
+| flag OFF, cold | 16.3s | — |
+| flag OFF, 2nd build (no `rm .next`) | 16.5s | **no benefit** |
+| flag ON, cold | 18.9s | **+16% (cache-write tax)** |
+| flag ON, warm, no change | **0.40s** | **~47×** |
+| flag ON, warm, 1 file changed | **3.8s** | **~5×** |
+
+`.next/cache` ≈ 188 MB for 1200 trivial modules.
+
+- **Default doesn't cache across builds** — a 2nd build with the flag off is still cold.
+- **With the flag, warm compile ∝ changed modules + dependents**, not total module count —
+  the one lever that beats "you still compile the same N files".
+- **Cold pays ~16% to write the cache**, so a cache miss is a net loss.
+- **CI applicability is gated on infra, not the flag**: `.next/cache` must survive across
+  runs (a `cleanWs`/fresh-workspace step wipes it), and a persistent build cache reintroduces
+  cross-build state — verify warm output is byte-identical to cold (chunk hashes stable)
+  before trusting it. Real apps will have a much larger (GB-scale) cache whose save/restore
+  time must be weighed against the compile saved.
+
 ## Caveats / how this maps to a real app build
 
 - **Synthetic, small components.** Real-app modules are larger and import heavier trees, so
