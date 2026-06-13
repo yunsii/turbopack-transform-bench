@@ -1,0 +1,14 @@
+{
+  "name": "turbopack-transforms-bench",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "gen": "pnpm --filter bench gen",
+    "build": "pnpm --filter bench build",
+    "bench": "pnpm --filter bench bench"
+  }
+}

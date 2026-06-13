@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.next-profiles/
+.bench-logs/
+*.tsbuildinfo
+
+# Generated benchmark fixtures (produced by gen-fixtures.mts)
+apps/bench/src/generated/
+
+# lingui catalogs produced during compile
+apps/bench/src/locales/
