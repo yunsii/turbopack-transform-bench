@@ -70,6 +70,30 @@ BENCH_SCALES=600 BENCH_ROUNDS=3 BENCH_TRACE=1 pnpm bench
   abort if a stray `next build` holds `.next` (stale builds look identical), median of
   K rounds, `childProcesses` runtime (workerThreads crashes on Node 24 / warns on 22).
 
+## Results
+
+Median compile (s) of 3 rounds, WSL2 / Node 22.22.2 / Next 16.2.6 / minify on /
+`childProcesses`. Δ = marginal cost of that loader over the baseline.
+
+| files | baseline | auto-import Δ | ai ms/file | @svgr Δ | svg ms/file |
+|---|---|---|---|---|---|
+| 300 | 2.30 | +1.20 | 4.00 | +2.60 | 8.67 |
+| 600 | 3.40 | +1.70 | 2.83 | +3.80 | 6.33 |
+| 1200 | 6.10 | +2.80 | 2.33 | +7.60 | 6.33 |
+| 2400 | 10.90 | +4.70 | 1.96 | +11.30 | 4.71 |
+| 4800 | 20.00 | +9.10 | 1.90 | +22.00 | 4.58 |
+
+- **Both loaders are linear at scale**, with a small fixed Node-worker / IPC cost the
+  early (300/600) per-file figures over-state, then converge:
+  - `auto-import-x-loader` ≈ **~1.9 ms/file** (+ ~0.3–0.7 s fixed)
+  - `@svgr/webpack` ≈ **~4.6 ms/file** (≈2.4× auto-import; + ~0.5–1.4 s fixed)
+- **The synthetic *fraction* is misleading.** At 4800 files svgr appears to double compile —
+  but only because these components are trivial (baseline ≈ 4.2 ms/file). In a real app each
+  module costs far more to compile, so the same ms/file marginal is a low-single-digit %.
+  The transferable number is the absolute **ms/file**, not the %.
+- `@lingui/swc-plugin` is read from the trace, not this table — see below. Full write-up in
+  [`FINDINGS.md`](./FINDINGS.md).
+
 ## Reading a trace (for lingui / loader spans)
 
 ```bash
